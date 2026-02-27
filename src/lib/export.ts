@@ -4,7 +4,6 @@
  */
 
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import type { InvoiceData, InvoiceTotals, ExportOptions } from '@/types/invoice';
 
 // Format date for display based on language
@@ -410,47 +409,190 @@ export const exportToHTML = (
 
 // Export to PDF
 export const exportToPDF = async (
-  element: HTMLElement,
+  _element: HTMLElement,
   invoice: InvoiceData,
+  totals: InvoiceTotals,
+  language: string = 'en',
   options: ExportOptions = {}
 ): Promise<void> => {
   const { filename = `Invoice-${invoice.invoiceNumber}` } = options;
   
   try {
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-    });
-    
-    const imgData = canvas.toDataURL('image/png');
-    
+    const labels = language === 'de' ? deLabels : enLabels;
+    const formattedDate = formatDate(invoice.invoiceDate, language);
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
       format: 'a4',
     });
-    
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-    
-    const imgWidth = canvas.width;
-    const imgHeight = canvas.height;
-    
-    const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-    
-    const imgX = (pdfWidth - imgWidth * ratio) / 2;
-    const imgY = 10;
-    
-    pdf.addImage(
-      imgData,
-      'PNG',
-      imgX,
-      imgY,
-      imgWidth * ratio,
-      imgHeight * ratio
-    );
+
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const margin = 15;
+    let y = 20;
+
+    const rightText = (text: string, x: number, yPos: number): void => {
+      const textWidth = pdf.getTextWidth(text);
+      pdf.text(text, x - textWidth, yPos);
+    };
+
+    const drawLabelValue = (label: string, value: string): void => {
+      pdf.setTextColor(107, 114, 128);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(label, pageWidth / 2 + 5, y);
+      pdf.setTextColor(31, 41, 55);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(value || '-', pageWidth / 2 + 42, y);
+      y += 6;
+    };
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(20);
+    pdf.setTextColor(31, 41, 55);
+    pdf.text(invoice.vendor.name, margin, y);
+
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(107, 114, 128);
+    pdf.text(`${labels.vatNo}: ${invoice.vendor.vatNumber}`, margin, y + 6);
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(24);
+    pdf.setTextColor(31, 41, 55);
+    rightText(labels.invoice, pageWidth - margin, y + 2);
+
+    y += 18;
+    pdf.setDrawColor(31, 41, 55);
+    pdf.setLineWidth(0.5);
+    pdf.line(margin, y, pageWidth - margin, y);
+    y += 10;
+
+    pdf.setFontSize(10);
+    pdf.setTextColor(107, 114, 128);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(labels.billTo.toUpperCase(), margin, y);
+    pdf.text(labels.invoiceDetails.toUpperCase(), pageWidth / 2 + 5, y);
+
+    y += 6;
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(31, 41, 55);
+    pdf.text(invoice.customer.companyName, margin, y);
+
+    pdf.setFont('helvetica', 'normal');
+    const addressLines = pdf.splitTextToSize(invoice.customer.address.replace(/, /g, ', '), 75);
+    pdf.text(addressLines, margin, y + 5);
+
+    drawLabelValue(labels.invoiceNumber, invoice.invoiceNumber);
+    drawLabelValue(labels.invoiceDate, formattedDate);
+    drawLabelValue(labels.referencePO, invoice.referencePO);
+    drawLabelValue(labels.currency, invoice.currency);
+
+    y = Math.max(y, 72 + addressLines.length * 5);
+    y += 8;
+
+    const col = {
+      material: margin,
+      desc: margin + 28,
+      qty: margin + 98,
+      unit: margin + 114,
+      price: margin + 130,
+      total: pageWidth - margin,
+    };
+
+    pdf.setFillColor(249, 250, 251);
+    pdf.rect(margin, y - 5, pageWidth - margin * 2, 8, 'F');
+    pdf.setDrawColor(229, 231, 235);
+    pdf.line(margin, y + 3, pageWidth - margin, y + 3);
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    pdf.setTextColor(107, 114, 128);
+    pdf.text(labels.materialNo.toUpperCase(), col.material, y);
+    pdf.text(labels.description.toUpperCase(), col.desc, y);
+    rightText(labels.qty.toUpperCase(), col.qty + 6, y);
+    rightText(labels.unit.toUpperCase(), col.unit + 8, y);
+    rightText(labels.price.toUpperCase(), col.price + 14, y);
+    rightText(labels.total.toUpperCase(), col.total, y);
+
+    y += 9;
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(10);
+    pdf.setTextColor(31, 41, 55);
+
+    for (const item of invoice.lineItems) {
+      const descriptionLines = pdf.splitTextToSize(item.description, 66);
+      const rowHeight = Math.max(6, descriptionLines.length * 4 + 2);
+
+      pdf.text(item.materialNo, col.material, y);
+      pdf.text(descriptionLines, col.desc, y);
+      rightText(String(item.quantity), col.qty + 6, y);
+      rightText(item.unit, col.unit + 8, y);
+      rightText(formatNumber(item.price), col.price + 14, y);
+      rightText(formatNumber(item.quantity * item.price), col.total, y);
+
+      y += rowHeight;
+      pdf.setDrawColor(229, 231, 235);
+      pdf.line(margin, y - 2, pageWidth - margin, y - 2);
+    }
+
+    y += 6;
+    const totalsX = pageWidth - margin - 65;
+    pdf.setDrawColor(229, 231, 235);
+    pdf.line(totalsX, y - 2, pageWidth - margin, y - 2);
+
+    const drawTotal = (label: string, value: string, bold: boolean = false): void => {
+      pdf.setFont('helvetica', bold ? 'bold' : 'normal');
+      pdf.setFontSize(bold ? 12 : 10);
+      pdf.setTextColor(107, 114, 128);
+      pdf.text(label, totalsX, y + 2);
+      pdf.setTextColor(31, 41, 55);
+      rightText(value, pageWidth - margin, y + 2);
+      y += bold ? 8 : 6;
+    };
+
+    drawTotal(labels.subtotal, `${formatNumber(totals.subtotal)} ${invoice.currency}`);
+    drawTotal(labels.tax + ` (${invoice.taxRate}%)`, `${formatNumber(totals.taxAmount)} ${invoice.currency}`);
+    pdf.line(totalsX, y - 1, pageWidth - margin, y - 1);
+    drawTotal(labels.grandTotal, `${formatNumber(totals.total)} ${invoice.currency}`, true);
+
+    y += 4;
+    pdf.setFillColor(249, 250, 251);
+    pdf.roundedRect(margin, y, pageWidth - margin * 2, 16, 1.5, 1.5, 'F');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    pdf.setTextColor(107, 114, 128);
+    pdf.text(labels.paymentTerms.toUpperCase(), margin + 4, y + 5);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(10);
+    pdf.setTextColor(31, 41, 55);
+    pdf.text(pdf.splitTextToSize(invoice.paymentTerms.description, pageWidth - margin * 2 - 8), margin + 4, y + 10);
+
+    y += 24;
+    pdf.setDrawColor(229, 231, 235);
+    pdf.line(margin, y, pageWidth - margin, y);
+    y += 8;
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    pdf.setTextColor(107, 114, 128);
+    pdf.text(labels.bankDetails.toUpperCase(), margin, y);
+    y += 6;
+
+    const bankColumnWidth = (pageWidth - margin * 2) / 3;
+    const bankItems = [
+      [labels.bankName, invoice.bankDetails.bankName],
+      [labels.account, invoice.bankDetails.accountNumber],
+      [labels.swift, invoice.bankDetails.swiftCode],
+    ] as const;
+
+    bankItems.forEach(([label, value], index) => {
+      const x = margin + index * bankColumnWidth;
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(107, 114, 128);
+      pdf.text(label, x, y);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(31, 41, 55);
+      pdf.text(value || '-', x, y + 5);
+    });
     
     pdf.save(`${filename}.pdf`);
   } catch (error) {
