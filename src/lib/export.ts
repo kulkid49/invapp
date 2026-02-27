@@ -520,7 +520,7 @@ export const exportToPDF = async (
 
     for (const item of invoice.lineItems) {
       const descriptionLines = pdf.splitTextToSize(item.description, 66);
-      const rowHeight = Math.max(6, descriptionLines.length * 4 + 2);
+      const rowHeight = Math.max(7, descriptionLines.length * 5);
 
       pdf.text(item.materialNo, col.material, y);
       pdf.text(descriptionLines, col.desc, y);
@@ -531,7 +531,8 @@ export const exportToPDF = async (
 
       y += rowHeight;
       pdf.setDrawColor(229, 231, 235);
-      pdf.line(margin, y - 2, pageWidth - margin, y - 2);
+      pdf.line(margin, y, pageWidth - margin, y);
+      y += 2;
     }
 
     y += 6;
