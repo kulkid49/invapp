@@ -37,7 +37,7 @@ function App() {
     if (!previewRef.current) return;
     
     try {
-      await exportToPDF(previewRef.current, invoice);
+      await exportToPDF(previewRef.current, invoice, totals, i18n.language);
       toast.success(t('toast.pdfExported'));
     } catch (error) {
       toast.error(t('toast.exportError'));
