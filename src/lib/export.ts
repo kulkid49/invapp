@@ -523,19 +523,23 @@ export const exportToPDF = async (
 
     for (const item of invoice.lineItems) {
       const descriptionLines = pdf.splitTextToSize(item.description, 66);
-      const rowHeight = Math.max(7, descriptionLines.length * 5);
+      const lineHeight = 5;
+      const rowPaddingTop = 2;
+      const rowPaddingBottom = 3;
+      const rowHeight = Math.max(9, rowPaddingTop + descriptionLines.length * lineHeight + rowPaddingBottom);
+      const textY = y + rowPaddingTop + 3;
 
-      pdf.text(item.materialNo, col.material, y);
-      pdf.text(descriptionLines, col.desc, y);
-      rightText(String(item.quantity), col.qty + 6, y);
-      rightText(item.unit, col.unit + 8, y);
-      rightText(formatNumber(item.price), col.price + 14, y);
-      rightText(formatNumber(item.quantity * item.price), col.total, y);
+      pdf.text(item.materialNo, col.material, textY);
+      pdf.text(descriptionLines, col.desc, textY);
+      rightText(String(item.quantity), col.qty + 6, textY);
+      rightText(item.unit, col.unit + 8, textY);
+      rightText(formatNumber(item.price), col.price + 14, textY);
+      rightText(formatNumber(item.quantity * item.price), col.total, textY);
 
       y += rowHeight;
       pdf.setDrawColor(229, 231, 235);
       pdf.line(margin, y, pageWidth - margin, y);
-      y += 2;
+      y += 1;
     }
 
     y += 6;
@@ -547,10 +551,10 @@ export const exportToPDF = async (
       pdf.setFont('helvetica', bold ? 'bold' : 'normal');
       pdf.setFontSize(bold ? 12 : 10);
       pdf.setTextColor(107, 114, 128);
-      pdf.text(label, totalsX, y + 2);
+      pdf.text(label, totalsX, y + 4);
       pdf.setTextColor(31, 41, 55);
-      rightText(value, pageWidth - margin, y + 2);
-      y += bold ? 8 : 6;
+      rightText(value, pageWidth - margin, y + 4);
+      y += bold ? 9 : 7;
     };
 
     drawTotal(labels.subtotal, `${formatNumber(totals.subtotal)} ${invoice.currency}`);
