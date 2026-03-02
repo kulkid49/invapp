@@ -67,8 +67,16 @@ export const InvoicePreview = forwardRef<HTMLDivElement, InvoicePreviewProps>(
             >
               {invoice.vendor.name}
             </h1>
-            <p style={{ color: '#6b7280', fontSize: '14px' }}>
+            <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '4px' }}>
               {t('labels.vatNumber')}: {invoice.vendor.vatNumber}
+            </p>
+            <p style={{ color: '#6b7280', fontSize: '14px', lineHeight: 1.4 }}>
+              {invoice.vendor.address.split(', ').map((part, i, arr) => (
+                <span key={i}>
+                  {part}
+                  {i < arr.length - 1 && <br />}
+                </span>
+              ))}
             </p>
           </div>
           <div style={{ textAlign: 'right' }}>

@@ -299,6 +299,7 @@ const generateInvoiceHTML = (
       <div class="company-info">
         <h1>${invoice.vendor.name}</h1>
         <p>${labels.vatNo}: ${invoice.vendor.vatNumber}</p>
+        <p>${invoice.vendor.address.replace(/, /g, '<br>')}</p>
       </div>
       <div class="invoice-title">
         <h2>${labels.invoice}</h2>
@@ -454,13 +455,15 @@ export const exportToPDF = async (
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(107, 114, 128);
     pdf.text(`${labels.vatNo}: ${invoice.vendor.vatNumber}`, margin, y + 6);
+    const vendorAddressLines = pdf.splitTextToSize(invoice.vendor.address.replace(/, /g, ', '), 75);
+    pdf.text(vendorAddressLines, margin, y + 11);
 
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(24);
     pdf.setTextColor(31, 41, 55);
     rightText(labels.invoice, pageWidth - margin, y + 2);
 
-    y += 18;
+    y += Math.max(18, 14 + vendorAddressLines.length * 5);
     pdf.setDrawColor(31, 41, 55);
     pdf.setLineWidth(0.5);
     pdf.line(margin, y, pageWidth - margin, y);
