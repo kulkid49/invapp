@@ -33,6 +33,7 @@ export interface BankDetails {
 export interface CompanyInfo {
   name: string;
   vatNumber: string;
+  address: string;
 }
 
 // Customer information
@@ -90,6 +91,13 @@ export interface ExportOptions {
 
 // Default values
 export const DEFAULT_VENDOR_VAT = 'DE1234567890';
+export const GERMAN_VENDOR_ADDRESSES = [
+  'Musterstraße 45, Berlin, Germany, 10115',
+  'Königsallee 12, Düsseldorf, Germany, 40212',
+  'Schwanthalerstraße 23, München, Germany, 80336',
+  'Lange Reihe 67, Hamburg, Germany, 20099',
+  'Taunusanlage 8, Frankfurt am Main, Germany, 60329',
+];
 export const DEFAULT_PAYMENT_TERMS: PaymentTerms = {
   description: 'Net 30 Days from Invoice Date',
   days: 30

@@ -14,6 +14,7 @@ import type {
 } from '@/types/invoice';
 import {
   DEFAULT_VENDOR_VAT,
+  GERMAN_VENDOR_ADDRESSES,
   DEFAULT_PAYMENT_TERMS,
   DEFAULT_CURRENCY,
   DEFAULT_TAX_RATE,
@@ -39,6 +40,12 @@ const getTodayDate = (): string => {
   return new Date().toISOString().split('T')[0];
 };
 
+// Generate a Germany-based vendor address for preview/export
+const generateGermanVendorAddress = (): string => {
+  const index = Math.floor(Math.random() * GERMAN_VENDOR_ADDRESSES.length);
+  return GERMAN_VENDOR_ADDRESSES[index];
+};
+
 // Create empty line item
 const createEmptyLineItem = (): LineItem => ({
   id: generateId(),
@@ -55,6 +62,7 @@ const createInitialInvoice = (): InvoiceData => ({
   vendor: {
     name: 'Component Suppliers S.A.',
     vatNumber: DEFAULT_VENDOR_VAT,
+    address: generateGermanVendorAddress(),
   },
   invoiceNumber: generateInvoiceNumber(),
   invoiceDate: getTodayDate(),
