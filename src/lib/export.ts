@@ -6,6 +6,47 @@
 import jsPDF from 'jspdf';
 import type { InvoiceData, InvoiceTotals, ExportOptions } from '@/types/invoice';
 
+const drawVendorLogo = (pdf: jsPDF, x: number, y: number): void => {
+  const hexagon = [
+    [x + 0, y + 8],
+    [x + 5, y + 0],
+    [x + 16, y + 0],
+    [x + 21, y + 8],
+    [x + 16, y + 16],
+    [x + 5, y + 16],
+  ] as const;
+
+  pdf.setFillColor(31, 87, 184);
+  pdf.setDrawColor(17, 54, 120);
+  pdf.setLineWidth(0.4);
+  pdf.lines(
+    hexagon.slice(1).map(([px, py], index) => [px - hexagon[index][0], py - hexagon[index][1]]),
+    hexagon[0][0],
+    hexagon[0][1],
+    [1, 1],
+    'FD',
+    true
+  );
+
+  pdf.setDrawColor(123, 186, 255);
+  pdf.setLineWidth(0.7);
+  pdf.circle(x + 7, y + 8, 3);
+  pdf.line(x + 10, y + 6, x + 17, y + 6);
+  pdf.line(x + 10, y + 8, x + 18, y + 8);
+  pdf.line(x + 10, y + 10, x + 17, y + 10);
+  pdf.setFillColor(123, 186, 255);
+  pdf.circle(x + 18.3, y + 8, 0.6, 'F');
+
+  pdf.setTextColor(19, 64, 153);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(19);
+  pdf.text('COMPONENT', x + 24, y + 7.8);
+
+  pdf.setTextColor(86, 113, 152);
+  pdf.setFontSize(11.5);
+  pdf.text('SUPPLIERS S.A.', x + 35, y + 13.8);
+};
+
 // Format date for display based on language
 const formatDate = (dateString: string, language: string = 'en'): string => {
   const date = new Date(dateString);
@@ -446,24 +487,26 @@ export const exportToPDF = async (
       y += 6;
     };
 
+    drawVendorLogo(pdf, margin, y - 7);
+
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(20);
     pdf.setTextColor(31, 41, 55);
-    pdf.text(invoice.vendor.name, margin, y);
+    pdf.text(invoice.vendor.name, margin, y + 20);
 
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(107, 114, 128);
-    pdf.text(`${labels.vatNo}: ${invoice.vendor.vatNumber}`, margin, y + 6);
+    pdf.text(`${labels.vatNo}: ${invoice.vendor.vatNumber}`, margin, y + 26);
     const vendorAddressLines = pdf.splitTextToSize(invoice.vendor.address.replace(/, /g, ', '), 75);
-    pdf.text(vendorAddressLines, margin, y + 11);
+    pdf.text(vendorAddressLines, margin, y + 31);
 
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(24);
     pdf.setTextColor(31, 41, 55);
-    rightText(labels.invoice, pageWidth - margin, y + 2);
+    rightText(labels.invoice, pageWidth - margin, y + 22);
 
-    y += Math.max(18, 14 + vendorAddressLines.length * 5);
+    y += Math.max(38, 34 + vendorAddressLines.length * 5);
     pdf.setDrawColor(31, 41, 55);
     pdf.setLineWidth(0.5);
     pdf.line(margin, y, pageWidth - margin, y);
